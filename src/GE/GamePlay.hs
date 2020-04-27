@@ -6,12 +6,20 @@ import qualified Data.Map as M
 import GE.Types
 
 
-
-
+runRobo :: GameWorld -> GameWorld
+runRobo gw@(GameWorld r@(Robot currPos cPM d vPts bPts) g@(Grid points) obs) =
+  case moveReq gw of
+    Right x -> x
+    Left (MoveStopNoti nextPos)  -> GameWorld updatedRobo (Grid points) obs
+      where
+        updatedRobo =  Robot currPos roboNewPm d newVisPoints newBlkPoints
+        roboNewPm = setPM d cPM
+        newVisPoints = M.insert currPos roboNewPm vPts
+        newBlkPoints = nextPos : bPts
 moveReq :: GameWorld -> Either MoveStopNoti GameWorld
 moveReq (GameWorld r@(Robot currPos cPM d vPts bPts) g@(Grid points) obs) 
   | elem nextPos obs = Left $ MoveStopNoti nextPos 
-  | not $ elem nextPos (concat points) = Left $ MoveStopNoti nextPos
+  | notElem nextPos (concat points) = Left $ MoveStopNoti nextPos
   | otherwise = Right $ GameWorld updatedRobot g obs 
   where
     nextPos = getRobotNextPos r
@@ -87,6 +95,12 @@ setDOpen p = p {pDOpen = False}
 setLOpen :: PointMeta -> PointMeta
 setLOpen p = p {pLOpen = False}
 
+setPM :: Direction -> PointMeta -> PointMeta
+setPM d = case d of
+  UP    -> setUOpen 
+  RIGHT -> setROpen 
+  DOWN  -> setDOpen 
+  LEFT  -> setLOpen
 
     
 getRobotNextPos :: Robot -> Coordinate
