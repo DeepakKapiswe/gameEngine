@@ -12,17 +12,16 @@ data GameWorld = GameWorld {
   , gwObstacles    :: [Coordinate]
 } deriving (Show, Eq)
 
-
 data Robot = Robot {
     rPos           :: Coordinate
-  , rPointMeta     :: PointMeta
+  , rPointPortMeta :: PortMeta
   , rDir           :: Direction
-  , rVistedPoints  :: Map Coordinate PointMeta
+  , rVistedPoints  :: Map Coordinate PortMeta
+  -- , rVisOpenPorts  :: Map Coordinate PortMeta
   , rBlockedCoords :: [Coordinate]
 } deriving (Show, Eq)
 
-type PointMap = Map Coordinate PointMeta
-
+type PortMap = Map Coordinate PortMeta
 
 data Coordinate = Coordinate {
     cX :: Int
@@ -30,11 +29,13 @@ data Coordinate = Coordinate {
 } deriving (Show, Eq, Ord)
 
 
-data PointMeta = PointMeta {
-    pUOpen :: Bool
-  , pROpen :: Bool
-  , pDOpen :: Bool
-  , pLOpen :: Bool
+data PortMeta = PortMeta {
+    pUOpen        :: Bool
+  , pROpen        :: Bool
+  , pDOpen        :: Bool
+  , pLOpen        :: Bool
+  , pIsFirstVisit :: Bool
+  , pIsClosed     :: Bool
 } deriving (Show, Eq)
 
 newtype Grid = Grid [[Coordinate]]

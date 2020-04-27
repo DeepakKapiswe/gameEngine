@@ -23,11 +23,11 @@ moveReq (GameWorld r@(Robot currPos cPM d vPts bPts) g@(Grid points) obs)
   | otherwise = Right $ GameWorld updatedRobot g obs 
   where
     nextPos = getRobotNextPos r
-    updatedRobot = Robot nextPos updRobotPm  d updVisPointMap bPts
+    updatedRobot = Robot nextPos updRobotPm  d updVisPortMap bPts
     
     newRobotPm = case M.lookup nextPos vPts of
         Just newPm -> newPm
-        _          -> initPointMeta
+        _          -> initPortMeta
     
     (setPmList', vPts')  = case (updateNeighbour uNbr pUOpen setDOpen vPts) of
       Nothing -> ([],vPts)
@@ -45,7 +45,7 @@ moveReq (GameWorld r@(Robot currPos cPM d vPts bPts) g@(Grid points) obs)
       Nothing -> (setPmList''',vPts''')
       Just newMap -> ( LEFT : setPmList''', newMap)
 
-    updateRobotPm :: PointMeta -> [Direction] -> PointMeta
+    updateRobotPm :: PortMeta -> [Direction] -> PortMeta
     updateRobotPm  pm [] = pm
     updateRobotPm pm (d:ds) =
       let pm' = case d of 
@@ -56,16 +56,16 @@ moveReq (GameWorld r@(Robot currPos cPM d vPts bPts) g@(Grid points) obs)
       in updateRobotPm pm' ds
     
     updRobotPm     = updateRobotPm newRobotPm setPmList''''
-    updVisPointMap = M.insert nextPos updRobotPm  vPts'''' 
+    updVisPortMap = M.insert nextPos updRobotPm  vPts'''' 
     
     
     
     updateNeighbour             
       :: Coordinate                 -- Coordinate of Adjacent Neighbour
-      -> (PointMeta -> Bool)        -- Which PointMeta to Look
-      -> (PointMeta -> PointMeta)   -- How to update Pm of Neighbour
-      -> PointMap                   -- Visited Point Map
-      -> Maybe PointMap             -- Updated Point Map If Neighbour Visited 
+      -> (PortMeta -> Bool)        -- Which PortMeta to Look
+      -> (PortMeta -> PortMeta)   -- How to update Pm of Neighbour
+      -> PortMap                   -- Visited Point Map
+      -> Maybe PortMap             -- Updated Point Map If Neighbour Visited 
     updateNeighbour nbr pmgf pmUpdf pMap = case pmgf newRobotPm of
       False -> Nothing  -- It means earlier visited from this direction, no need to update Map
       True  -> case M.updateLookupWithKey  (updF pmUpdf) nbr pMap of
@@ -79,23 +79,23 @@ moveReq (GameWorld r@(Robot currPos cPM d vPts bPts) g@(Grid points) obs)
     dNbr = nDown  nbrs  
     lNbr = nLeft  nbrs
 
-    updF :: (PointMeta -> PointMeta) -> Coordinate -> PointMeta -> Maybe PointMeta 
+    updF :: (PortMeta -> PortMeta) -> Coordinate -> PortMeta -> Maybe PortMeta 
     updF  f _ pm = Just $ f pm
 
 
-setUOpen :: PointMeta -> PointMeta
+setUOpen :: PortMeta -> PortMeta
 setUOpen p = p {pUOpen = False}
 
-setROpen :: PointMeta -> PointMeta
+setROpen :: PortMeta -> PortMeta
 setROpen p = p {pROpen = False}
 
-setDOpen :: PointMeta -> PointMeta
+setDOpen :: PortMeta -> PortMeta
 setDOpen p = p {pDOpen = False}
 
-setLOpen :: PointMeta -> PointMeta
+setLOpen :: PortMeta -> PortMeta
 setLOpen p = p {pLOpen = False}
 
-setPM :: Direction -> PointMeta -> PointMeta
+setPM :: Direction -> PortMeta -> PortMeta
 setPM d = case d of
   UP    -> setUOpen 
   RIGHT -> setROpen 
@@ -118,8 +118,8 @@ getNeighbours (Coordinate x y) =
    (Coordinate x     (y-1))
    (Coordinate (x-1) y    )
  
-initPointMeta :: PointMeta
-initPointMeta = PointMeta True True True True   
+initPortMeta :: PortMeta
+initPortMeta = PortMeta True True True True True False 
 
 
 setRoboDir :: Direction -> GameWorld -> GameWorld

@@ -3,15 +3,16 @@ module Main where
 import Data.Map
 
 import GE.Types
-import GE.Display
+-- import GE.Display
 import GE.GamePlay
-import GE.GameRun
+-- import GE.GameRun
 import GE.CreateGame
 
 import Control.Monad
 
 main :: IO ()
-main = game (makeSampleGameWorld 10 10)
+main = pure ()
+  --  game (makeSampleGameWorld 10 10)
 
 
 

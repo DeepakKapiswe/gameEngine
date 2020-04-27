@@ -15,7 +15,7 @@ makeGrid x y = Grid $ reverse $ makeRow x <$> [1..y]
 makeSampleGameWorld :: Int -> Int -> GameWorld
 makeSampleGameWorld x y = GameWorld r g sampleObs
   where
-    r = Robot cord initPointMeta UP (insert cord initPointMeta  mempty) []
+    r = Robot cord initPortMeta UP (insert cord initPortMeta  mempty) []
     g = makeGrid x y 
     cord = Coordinate 5 5
 
