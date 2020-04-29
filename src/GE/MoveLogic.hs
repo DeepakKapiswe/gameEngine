@@ -39,33 +39,39 @@ validMoveResHandler nextPos r@(Robot lastPos cPM d visPM _) =
                        }
                    }
 
-      Just newPm -> updatedRobo 
+      Just newPM -> nbrUpdatedRobo { rVisPortMeta = pathUpdatedVisMeta } 
         where
           
+          pathUpdatedVisMeta = updatePaths lastPos updLastPM nbrUpdVisMeta
+          updLastPM = case M.lookup lastPos (vpmCPorts nbrUpdVisMeta) of
+            Just pm -> pm
+            Nothing ->  (vpmOPorts nbrUpdVisMeta) M.! lastPos
+
+          nbrUpdVisMeta = rVisPortMeta nbrUpdatedRobo 
           nbrs = getNeighbours nextPos
           uNbr = nUp    nbrs  
           rNbr = nRight nbrs  
           dNbr = nDown  nbrs  
           lNbr = nLeft  nbrs
           
-          updatedRobo = 
+          nbrUpdatedRobo = 
             updateNeighbour 
-              (pUOpen cPM) 
+              (pUOpen newPM) 
               uNbr
               setDOpen
               setUOpen
             $ updateNeighbour 
-              (pROpen cPM) 
+              (pROpen newPM) 
               rNbr
               setLOpen
               setROpen
             $ updateNeighbour 
-              (pDOpen cPM) 
+              (pDOpen newPM) 
               dNbr
               setUOpen
               setDOpen
             $ updateNeighbour 
-              (pLOpen cPM) 
+              (pLOpen newPM) 
               lNbr
               setROpen
               setLOpen
@@ -75,13 +81,13 @@ updatePaths
   :: Coordinate               -- The Coordinate of the last position of robot
   -> PortMeta                 -- Updated PortMeta of last position of robot from where it came
   -> VisPortMeta              -- Visited Port Meta to update
-  -> (PortMeta, VisPortMeta)  -- Updated Visited Port Meta with updated paths
+  -> VisPortMeta              -- Updated Visited Port Meta with updated paths
 updatePaths
   lastCord
   lastPM
-  visPM@(VisPortMeta vpmMax vpmLast vpmLInt _ _ vCPNMap vPNOPPMap vIntPNMap ) =
+  visPM@(VisPortMeta vpmMax vpmLast _ vOPorts vCPNMap vPNOPPMap) =
     case pIsFirstVisit lastPM  of
-      True -> (pm', visPM')    -- we can be sure this is the first time robot
+      True -> visPM'           -- we can be sure this is the first time robot
                                -- visited this port. So just insert a new OPP
                                -- and update all previous without any check
                                -- and set the Fisrt Visit flag to False
@@ -89,38 +95,42 @@ updatePaths
           visPM'     = visPM {
               vpmMaxPortNum    = vpmMax'
             , vpmLastUpdatedPN = vpmMax
-            , vpmLastInterval  = vpmLInt'
+            , vpmOPorts        = vOPorts'
+            -- , vpmLastInterval  = vpmLInt'
             , vpmCoordPNMap    = vCPNMap'
             , vpmPNOPPMap      = vPNOPPMap'
-            , vpmIntervalPNMap = vIntPNMap'
+            -- , vpmIntervalPNMap = vIntPNMap'
           }
+          vOPorts'   = M.insert lastCord pm' vOPorts
           vpmMax'    = succ vpmMax 
           vCPNMap'   = M.insert lastCord vpmMax vCPNMap
           vPNOPPMap' = M.insert vpmMax' [lastCord] $ fmap ( lastCord : ) vPNOPPMap   
           pm'        = lastPM { pIsFirstVisit = False }
-          (vpmLInt', vIntPNMap') = updateLastInterval vpmLInt vIntPNMap
+        --   (vpmLInt', vIntPNMap') = updateLastInterval vpmLInt vIntPNMap
 
       False -> case pIsClosed lastPM of
-        True  -> (lastPM, visPM )  -- Do Nothing as we can be sure whenever robot travels through
-                                   -- a Closed port then its destination must be an open port
-                                   -- and also we can be sure that the robot will must reach its
-                                   -- destination so there is no need to update the paths in between
-                                   -- as all the effect will be washed away when it will reach the
-                                   -- destination open port which was in history  
-        False -> a
-    where
-      updateLastInterval 
-        :: PortInterval                    -- The last portInterval to update
-        -> Map PortInterval PortInterval  -- The Map to update
-        -> (PortInterval, Map PortInterval PortInterval)   -- returns the updated Map
-      updateLastInterval pi piMap =
-        let pi' = pi {piHigh = (piHigh pi) + 1}
-        in  (pi', M.insert pi' pi' $ M.delete pi piMap)
+        True  ->  visPM    -- Do Nothing as we can be sure whenever robot travels through
+                           -- a Closed port then its destination must be an open port
+                           -- and also we can be sure that the robot will must reach its
+                           -- destination so there is no need to update the paths in between
+                           -- as all the effect will be washed away when it will reach the
+                           -- destination open port which was in history  
+        False -> visPM {
+            vpmPNOPPMap = vPNOPPMap'
+        }
+          where
+            vPNOPPMap' = fmap (searchDelete lastCord ) vPNOPPMap
+             
 
 
 
-
-  
+    --   updateLastInterval 
+    --     :: PortInterval                    -- The last portInterval to update
+    --     -> Map PortInterval PortInterval  -- The Map to update
+    --     -> (PortInterval, Map PortInterval PortInterval)   -- returns the updated Map
+    --   updateLastInterval pi piMap =
+    --     let pi' = pi {piHigh = (piHigh pi) + 1}
+    --     in  (pi', M.insert pi' pi' $ M.delete pi piMap)
 
 
 updateNeighbour
@@ -154,36 +164,41 @@ updateNeighbour
 
 -- | This function should be called whenever a port is closed
 portCloseHandler 
-  :: Coordinate
+  :: Coordinate 
   -> PortMeta 
   -> VisPortMeta
   -> VisPortMeta
 portCloseHandler 
   cord
   pm
-  vpm@(VisPortMeta _ _ _ visCPorts visOPorts cordPNMap pnOPPMap intPNMap) = 
+  vpm@(VisPortMeta _  _ visCPorts visOPorts cordPNMap pnOPPMap) = 
     vpm {
       vpmLastUpdatedPN  = portNum
     , vpmCPorts         = vpmCPorts'
     , vpmOPorts         = vpmOPorts'
     , vpmCoordPNMap     = vpmCoordPNMap'
     , vpmPNOPPMap       = vpmPNOPPMap'
-    , vpmIntervalPNMap  = vpmIntervalPNMap'
+    -- , vpmIntervalPNMap  = vpmIntervalPNMap'
         }
   where
     portNum        = cordPNMap M.! cord
     vpmCPorts'     = M.insert cord pm visCPorts
     vpmOPorts'     = M.delete cord visOPorts
     vpmCoordPNMap' = M.delete cord cordPNMap
-    vpmPNOPPMap'   = foldl' 
-                       (flip $ M.adjust (dropWhile (/= cord)))  
-                       (M.delete portNum pnOPPMap) 
-                       (intervalToPNs newInt1)
-    vpmIntervalPNMap' = M.insert newInt2 newInt2 
-                        $ M.insert newInt1 newInt1 
-                        $ M.delete pnInterval intPNMap
-    pnInterval     = intPNMap M.! (PortInterval portNum portNum)
-    (newInt1, newInt2) = breakInterval pnInterval portNum
+    vpmPNOPPMap'   = fmap (searchDelete cord) (M.delete portNum pnOPPMap) 
+
+
+                       
+searchDelete :: Eq a => a -> [a]-> [a]
+searchDelete a xs | elem a xs = dropWhile (/= a) xs
+                  | otherwise = xs 
+                  
+                  
+    -- vpmIntervalPNMap' = M.insert newInt2 newInt2 
+    --                     $ M.insert newInt1 newInt1 
+    --                     $ M.delete pnInterval intPNMap
+    -- pnInterval     = intPNMap M.! (PortInterval portNum portNum)
+    -- (newInt1, newInt2) = breakInterval pnInterval portNum
 
 
 

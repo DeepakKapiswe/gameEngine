@@ -5,8 +5,9 @@ import qualified Data.Map as M
 import GE.Types
 
 
--- initVisPorts :: VisPorts
--- initVisPorts = VisPorts mempty mempty
+initVisPorts :: VisPortMeta
+initVisPorts = VisPortMeta 2 1 mempty mempty mempty mempty
+
 
 -- insertOPort
 --   :: Coordinate

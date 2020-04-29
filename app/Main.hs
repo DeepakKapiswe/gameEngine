@@ -6,8 +6,9 @@ import GE.Types
 -- import GE.Display
 -- import GE.GamePlay
 -- import GE.GameRun
--- import GE.CreateGame
--- import GE.MoveLogic
+import GE.CreateGame
+import GE.MoveLogic
+import GE.GameRunner
 
 import Control.Monad
 

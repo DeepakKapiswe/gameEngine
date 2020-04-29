@@ -1,11 +1,10 @@
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric    #-}
+{-# LANGUAGE DeriveGeneric  #-}
 
 module GE.Types where
 
 import Data.HashMap.Strict
 import Data.Hashable
--- import Data.Map
 import GHC.Generics (Generic)
 
 data GameWorld = GameWorld {
@@ -25,12 +24,12 @@ data Robot = Robot {
 data VisPortMeta = VisPortMeta {
     vpmMaxPortNum    :: Int
   , vpmLastUpdatedPN :: Int
-  , vpmLastInterval  :: PortInterval
+  -- , vpmLastInterval  :: PortInterval
   , vpmCPorts        :: Map Coordinate PortMeta
   , vpmOPorts        :: Map Coordinate PortMeta
   , vpmCoordPNMap    :: Map Coordinate PortNum
   , vpmPNOPPMap      :: Map PortNum OpenPortPath
-  , vpmIntervalPNMap :: Map PortInterval PortInterval
+  -- , vpmIntervalPNMap :: Map PortInterval PortInterval
 } deriving (Show, Eq)
 
 type PortNum = Int
@@ -57,8 +56,8 @@ data PortMeta = PortMeta {
   , pIsClosed     :: Bool
 } deriving (Show, Eq)
 
-newtype Grid = Grid [[Coordinate]]
-  deriving (Show, Eq)
+type Grid = [[Coordinate]]
+  -- deriving (Show, Eq)
 
 data Direction =
     UP
@@ -78,7 +77,7 @@ data Neighbours = Neighbours {
 } deriving (Show, Eq)
 
 data Command =
-    Move
+    Move 
   | SetDirection Direction
   deriving (Show, Eq)
 
