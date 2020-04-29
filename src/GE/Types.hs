@@ -1,9 +1,11 @@
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric  #-}
+{-# LANGUAGE DeriveGeneric    #-}
 
 module GE.Types where
 
-import Data.Map
+import Data.HashMap.Strict
+import Data.Hashable
+-- import Data.Map
 import GHC.Generics (Generic)
 
 data GameWorld = GameWorld {
@@ -13,20 +15,37 @@ data GameWorld = GameWorld {
 } deriving (Show, Eq)
 
 data Robot = Robot {
-    rPos           :: Coordinate
-  , rPointPortMeta :: PortMeta
-  , rDir           :: Direction
-  , rVistedPoints  :: Map Coordinate PortMeta
-  -- , rVisOpenPorts  :: Map Coordinate PortMeta
-  , rBlockedCoords :: [Coordinate]
+    rPos            :: Coordinate
+  , rPortMeta       :: PortMeta
+  , rDir            :: Direction
+  , rVisPortMeta    :: VisPortMeta
+  , rBlockedCoords  :: [Coordinate]
 } deriving (Show, Eq)
 
-type PortMap = Map Coordinate PortMeta
+data VisPortMeta = VisPortMeta {
+    vpmMaxPortNum    :: Int
+  , vpmLastUpdatedPN :: Int
+  , vpmLastInterval  :: PortInterval
+  , vpmCPorts        :: Map Coordinate PortMeta
+  , vpmOPorts        :: Map Coordinate PortMeta
+  , vpmCoordPNMap    :: Map Coordinate PortNum
+  , vpmPNOPPMap      :: Map PortNum OpenPortPath
+  , vpmIntervalPNMap :: Map PortInterval PortInterval
+} deriving (Show, Eq)
+
+type PortNum = Int
+type Map = HashMap
+
+type OpenPortPath = [Coordinate]
+
+
 
 data Coordinate = Coordinate {
     cX :: Int
   , cY :: Int
-} deriving (Show, Eq, Ord)
+} deriving (Show, Eq, Ord, Generic)
+
+instance Hashable Coordinate
 
 
 data PortMeta = PortMeta {
@@ -58,7 +77,24 @@ data Neighbours = Neighbours {
   , nLeft  :: Coordinate
 } deriving (Show, Eq)
 
-data Command = 
-    Move 
-  | SetDirection Direction 
+data Command =
+    Move
+  | SetDirection Direction
   deriving (Show, Eq)
+
+data MoveRes = Ok Coordinate
+             | Blocked Coordinate
+  deriving (Show, Eq)
+
+data PortInterval = PortInterval {
+    piLow  :: PortNum
+  , piHigh :: PortNum
+  } deriving (Show, Eq, Generic)
+
+instance Hashable PortInterval
+
+instance Ord PortInterval where
+  compare (PortInterval x _) (PortInterval l h)
+    | x < l = LT
+    | x > h = GT
+    | otherwise = EQ

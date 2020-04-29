@@ -4,9 +4,10 @@ import Data.Map
 
 import GE.Types
 -- import GE.Display
-import GE.GamePlay
+-- import GE.GamePlay
 -- import GE.GameRun
-import GE.CreateGame
+-- import GE.CreateGame
+-- import GE.MoveLogic
 
 import Control.Monad
 
