@@ -2,22 +2,25 @@ module GE.CreateGame where
 
 import Data.Map
 import GE.Types
-import GE.GamePlay
+import qualified Data.HashMap.Strict as M
+import GE.PortMeta
+import GE.VisPortMeta 
 
+d = 12
 
-
-makeGrid :: Int -> Int -> Grid
-makeGrid x y = Grid $ reverse $ makeRow x <$> [1..y]
+makeGrid :: Int -> Int -> [[Coordinate]]
+makeGrid x y = reverse $ makeRow x <$> [1..y]
   where
     makeRow :: Int -> Int -> [Coordinate]
     makeRow x y = [Coordinate a y | a <- [1..x]] 
 
-makeSampleGameWorld :: Int -> Int -> GameWorld
-makeSampleGameWorld x y = GameWorld r g sampleObs
+makeSampleGame :: Int -> Int -> Game
+makeSampleGame x y = Game (GameConfig g sampleObs) r
   where
-    r = Robot cord initPointMeta UP (insert cord initPointMeta  mempty) []
+    r = Robot cord initPortMeta UP visPortMeta []
     g = makeGrid x y 
     cord = Coordinate 5 5
+    visPortMeta = insertPort cord initPortMeta $ initVisPorts 
 
 sampleObs :: [Coordinate]
 sampleObs = [

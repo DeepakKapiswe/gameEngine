@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 187a3dc215512b38fcd4f40a492bf8778a440de108ef91c29593e6f68a60f4d2
+-- hash: bde865d71e516cee826ca5e54a99c58d0557e35d2b6aa79147ef1de980630c72
 
 name:           gameEngine
 version:        0.1.0.0
@@ -27,12 +27,17 @@ source-repository head
 
 library
   exposed-modules:
+      GE.Common
       GE.CreateGame
-      GE.Display
-      GE.GamePlay
-      GE.GameRun
+      GE.GameRunner
+      GE.MoveLogic
+      GE.PathLogic
+      GE.PortCompletion
+      GE.PortMeta
+      GE.Robot
       GE.Types
       GE.UndoRedo
+      GE.VisPortMeta
   other-modules:
       Paths_gameEngine
   hs-source-dirs:
@@ -40,6 +45,8 @@ library
   build-depends:
       base >=4.7 && <5
     , containers
+    , hashable
+    , unordered-containers
   default-language: Haskell2010
 
 executable gameEngine-exe
@@ -53,6 +60,8 @@ executable gameEngine-exe
       base >=4.7 && <5
     , containers
     , gameEngine
+    , hashable
+    , unordered-containers
   default-language: Haskell2010
 
 test-suite gameEngine-test
@@ -67,4 +76,6 @@ test-suite gameEngine-test
       base >=4.7 && <5
     , containers
     , gameEngine
+    , hashable
+    , unordered-containers
   default-language: Haskell2010
