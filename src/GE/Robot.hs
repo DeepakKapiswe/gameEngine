@@ -20,6 +20,5 @@ getNeighbours (Coordinate x y) =
    (Coordinate (x-1) y    )
 
 
-
-setRoboDir :: Direction -> GameWorld -> GameWorld
-setRoboDir d g = g {gwRobot = (gwRobot g){rDir = d}}
+setRoboDir :: Robot -> Direction -> Robot
+setRoboDir r d = r {rDir = d}

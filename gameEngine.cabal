@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 309d6d05915454f0d8a26d855fbd01ca120121e291753212636f1df05a876fa7
+-- hash: bde865d71e516cee826ca5e54a99c58d0557e35d2b6aa79147ef1de980630c72
 
 name:           gameEngine
 version:        0.1.0.0
@@ -27,14 +27,17 @@ source-repository head
 
 library
   exposed-modules:
+      GE.Common
       GE.CreateGame
       GE.GameRunner
       GE.MoveLogic
+      GE.PathLogic
+      GE.PortCompletion
       GE.PortMeta
       GE.Robot
       GE.Types
       GE.UndoRedo
-      GE.VisPorts
+      GE.VisPortMeta
   other-modules:
       Paths_gameEngine
   hs-source-dirs:
