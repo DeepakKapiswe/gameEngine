@@ -8,6 +8,19 @@ import GE.PortMeta
 import GE.VisPortMeta
 import GE.Robot
 import GE.Common
+import GE.Port
+import GE.PortCompletion
+
+
+updateRoboPath 
+  :: Robot       -- Old Robot 
+  -> Robot       -- New Robot
+  -> Robot       -- Robot With Paths Updated
+updateRoboPath oldR newR =
+  newR { rVisPortMeta = updatePaths lastPos visPM }
+  where
+    visPM = rVisPortMeta newR
+    lastPos = rPos oldR
 
 updatePaths 
   :: Coordinate               -- The Coordinate of the last position of robot
@@ -16,13 +29,15 @@ updatePaths
 updatePaths
   lastCord
   visPM@(VisPortMeta vpmMax vpmLastUpdPns vCPorts vOPorts vCPNMap vPNOPPMap) =
+    updatePort lastCord unsetFirstVisit $
+    closeCompletePort lastCord lastPM $
     case pIsFirstVisit lastPM of
-      True -> visPM'           -- we can be sure this is the first time robot
+      True | not $ pIsClosed lastPM -> visPM'          
+                               -- we can be sure this is the first time robot
                                -- visited this port. So just insert a new OPP
                                -- and update all previous without any check
-                               -- and set the Fisrt Visit flag to False
         where
-          visPM'     = insertPort lastCord pm' $ visPM {
+          visPM' = updatePort lastCord unsetFirstVisit $ visPM {
               vpmMaxPortNum     = vpmMax'
             , vpmLastUpdatedPNs = vpmLastUpdPns'
             , vpmCoordPNMap     = vCPNMap'
@@ -31,20 +46,31 @@ updatePaths
           vpmMax'    = succ vpmMax 
           vpmLastUpdPns' = vpmMax : vpmLastUpdPns
           vCPNMap'   = M.insert lastCord vpmMax vCPNMap
-          vPNOPPMap' = M.insert vpmMax [lastCord] $ fmap ( lastCord : ) vPNOPPMap   
-          pm'        = unsetFirstVisit lastPM 
+          vPNOPPMap' = M.insert vpmMax [lastCord] $ fmap ( lastCord : ) vPNOPPMap
 
-
-      False -> visPM { vpmPNOPPMap = vPNOPPMap'}
-        --   case pIsClosed lastPM of
-        -- True  ->  visPM    -- Do Nothing as we can be sure whenever robot travels through
-                           -- a Closed port then its destination must be an open port
-                           -- and also we can be sure that the robot will must reach its
-                           -- destination so there is no need to update the paths in between
-                           -- as all the effect will be washed away when it will reach the
-                           -- destination open port which was in history  
-        -- False ->
+      _ -> visPM { vpmPNOPPMap = vPNOPPMap'}
+                                -- This means we have visited the port earlier
+                                -- or the port was closed in firstvisit only
+                                -- in both the cases we don't need to open a new port
+                                -- but update all other paths as delete if this element
+                                -- is present in the path till this element as those
+                                -- are not necessary to travel as we found a cycle
         where
           vPNOPPMap' = fmap (searchDeleteAdd lastCord ) vPNOPPMap
   where
     lastPM = getCoordPM lastCord visPM                      
+
+
+deleteCurrPortFromPaths
+  :: Coordinate
+  -> Robot
+  -> Robot
+deleteCurrPortFromPaths newPos rob =
+  rob {rVisPortMeta = newVisPm}
+  where
+    newVisPm =  visPM { vpmPNOPPMap = vpmPNOPPMap'
+                      }
+    vpmPNOPPMap' = fmap (searchDelete newPos) (vpmPNOPPMap visPM)
+    visPM = rVisPortMeta rob
+
+

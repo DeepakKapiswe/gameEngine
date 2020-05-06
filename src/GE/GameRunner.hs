@@ -1,9 +1,12 @@
 module GE.GameRunner where
 
+import qualified Data.HashMap.Strict as M
 
 import GE.Types
 import GE.Robot
 import GE.MoveLogic
+import GE.PathLogic
+import GE.RoboEngine
 
 
 gameServer :: GameConfig -> Coordinate -> MoveRes
@@ -21,3 +24,32 @@ gameStep cmd g = case cmd of
     gc = gGameConfig g
     r  = gRobot g
 
+gameAutoPlay :: Game -> Game
+gameAutoPlay g = 
+  case (gIsCompleted g) of
+    True -> g
+    False ->
+      case getNextCommand red mr rob of
+        (_,Done) ->  g { gIsCompleted = True }
+        (red', UpdateEngineData) -> g {gRoboEngineData = red'}
+        (red', cmd)              -> g { gRoboEngineData = red'
+                                      , gLastResponse   = gameServerRes
+                                      , gRobot          = newRobo'
+                                      , gIsPathsConsistent = consistencyResult
+                                      }
+          where
+            gameServerRes =
+              case cmd of
+                SetDirection d -> DirectionSet d 
+                Move           -> (gameServer gConfig (getRobotNextPos rob))
+            newRobo' = updateRoboPath rob $ newRobo
+            newRobo = case cmd of
+              SetDirection d -> setRoboDir rob d
+              Move           -> moveResHandler gameServerRes rob
+            consistencyResult = all checkConsistency . M.elems $ vpmPNOPPMap (rVisPortMeta newRobo')
+  where
+    red = gRoboEngineData g
+    mr  = gLastResponse g
+    rob = gRobot g
+    gConfig = gGameConfig g
+               

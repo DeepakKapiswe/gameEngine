@@ -11,6 +11,7 @@ import GE.Robot
 import GE.PathLogic
 
 
+
 -- | takes a Move Response and changes the Robot Metadata accordingly
 moveResHandler :: MoveRes -> Robot -> Robot
 moveResHandler mRes r@(Robot currPos cPM d visPM bPts) =
@@ -19,30 +20,29 @@ moveResHandler mRes r@(Robot currPos cPM d visPM bPts) =
     Blocked nextPos  -> blockedMoveResHandler nextPos r
 
 blockedMoveResHandler :: Coordinate -> Robot -> Robot
-blockedMoveResHandler nextPos r@(Robot currPos cPM d _ bPts) = updatedRobo
+blockedMoveResHandler nextPos r@(Robot currPos cPM d _ bPts) = 
+  updatedRobo
   where
     updatedRobo =  r { rPortMeta = roboNewPm
                      , rBlockedCoords = newBlkPoints
                      , rVisPortMeta = roboNewVisPm }
-    roboNewPm = setPM d cPM
-    roboNewVisPm = insertPort currPos roboNewPm (rVisPortMeta r)
+    roboNewPm    = setPM d cPM
+    roboNewVisPm = updatePort currPos (setPM d) (rVisPortMeta r)
     newBlkPoints = nextPos : bPts
 
 validMoveResHandler :: Coordinate -> Robot -> Robot
-validMoveResHandler nextPos r@(Robot lastPos cPM d visPM _) =
+validMoveResHandler nextPos r@(Robot lastPos cPM d visPM _) = 
   case M.lookup nextPos (vpmCPorts visPM) of
     Just newPm ->  newRobo                                  -- this means is the newPos is a Completed Port
       where
         newRobo = r { rPos = nextPos
-                    , rPortMeta = newPm
-                    , rVisPortMeta = updatePaths lastPos visPM }    
+                    , rPortMeta = newPm}  
     Nothing -> case M.lookup nextPos (vpmOPorts visPM) of
       Nothing -> newRobo                                    -- this means nextPos is never visited before
         where
           newRobo  = lUpdRobo { rPortMeta = newRoboPm
-                              , rVisPortMeta = updatePaths lastPos newRoboVisPm 
+                              , rVisPortMeta = newRoboVisPm 
                               }
-
 
           newRoboPm    = rPortMeta lUpdRobo
           newRoboVisPm = insertPort nextPos newRoboPm $ rVisPortMeta lUpdRobo 
@@ -62,7 +62,7 @@ validMoveResHandler nextPos r@(Robot lastPos cPM d visPM _) =
                 where
                   oldVisPm = rVisPortMeta r'
                   newRoboPm = setUOpen (rPortMeta r')
-                  newRoboVisPm = insertPort uNbr (setDOpen uNbrPm) $ rVisPortMeta r'
+                  newRoboVisPm = updatePort uNbr setDOpen $ rVisPortMeta r'
                   roboAndUpNeigbourUpdated = r' {rPortMeta = newRoboPm , rVisPortMeta = newRoboVisPm}
           rUpdRobo = 
             case M.lookup rNbr (vpmOPorts $ rVisPortMeta uUpdRobo) of
@@ -70,7 +70,7 @@ validMoveResHandler nextPos r@(Robot lastPos cPM d visPM _) =
               Just rNbrPm -> roboAndRightNeigbourUpdated
                 where
                   newRoboPm = setROpen (rPortMeta uUpdRobo)
-                  newRoboVisPm = insertPort rNbr (setLOpen rNbrPm) $ rVisPortMeta uUpdRobo
+                  newRoboVisPm = updatePort rNbr setLOpen $ rVisPortMeta uUpdRobo
                   roboAndRightNeigbourUpdated = uUpdRobo {rPortMeta = newRoboPm , rVisPortMeta = newRoboVisPm}
           dUpdRobo = 
             case M.lookup dNbr (vpmOPorts $ rVisPortMeta rUpdRobo) of
@@ -78,30 +78,27 @@ validMoveResHandler nextPos r@(Robot lastPos cPM d visPM _) =
               Just dNbrPm -> roboAndDownNeigbourUpdated
                 where
                   newRoboPm = setDOpen (rPortMeta rUpdRobo)
-                  newRoboVisPm = insertPort dNbr (setUOpen dNbrPm) $ rVisPortMeta rUpdRobo 
+                  newRoboVisPm = updatePort dNbr setUOpen $ rVisPortMeta rUpdRobo 
                   roboAndDownNeigbourUpdated = rUpdRobo {rPortMeta = newRoboPm , rVisPortMeta = newRoboVisPm}
           lUpdRobo = 
             case M.lookup lNbr (vpmOPorts $ rVisPortMeta dUpdRobo) of
               Nothing -> dUpdRobo
               Just lNbrPm -> roboAndLeftNeigbourUpdated
                 where
-                  newRoboPm = closePortIfPossible $ setLOpen (rPortMeta dUpdRobo)
-                  newRoboVisPm = insertPort lNbr (setROpen lNbrPm) $ rVisPortMeta dUpdRobo
+                  newRoboPm = setLOpen (rPortMeta dUpdRobo)
+                  newRoboVisPm = updatePort lNbr setROpen $ rVisPortMeta dUpdRobo
                   roboAndLeftNeigbourUpdated = dUpdRobo {rPortMeta = newRoboPm , rVisPortMeta = newRoboVisPm}
 
 
       Just newPM -> newRobo                                    -- this means nextPos is never visited before
         where
           newRobo  = lUpdRobo { rPortMeta = newRoboPm
-                              , rVisPortMeta = updatePaths lastPos newRoboVisPm 
+                              , rVisPortMeta = newRoboVisPm 
                               }
   
   
           newRoboPm    = rPortMeta lUpdRobo
-          newRoboVisPm =
-            case pIsClosed newRoboPm of
-              True  -> neighbourUpdVisPm {  vpmCPorts =  M.insert nextPos newRoboPm (vpmCPorts $ neighbourUpdVisPm)}
-              False -> neighbourUpdVisPm {  vpmOPorts =  M.insert nextPos newRoboPm (vpmOPorts $ neighbourUpdVisPm)}
+          newRoboVisPm = updatePort nextPos (const newRoboPm) neighbourUpdVisPm
           neighbourUpdVisPm = rVisPortMeta lUpdRobo 
           
           r' = r { rPos = nextPos
@@ -119,7 +116,7 @@ validMoveResHandler nextPos r@(Robot lastPos cPM d visPM _) =
               Just uNbrPm -> roboAndUpNeigbourUpdated
                 where
                   newRoboPm = setUOpen (rPortMeta r')
-                  newRoboVisPm = insertPort uNbr (setDOpen uNbrPm) $ rVisPortMeta r'
+                  newRoboVisPm = updatePort uNbr setDOpen $ rVisPortMeta r'
                   roboAndUpNeigbourUpdated = r' {rPortMeta = newRoboPm , rVisPortMeta = newRoboVisPm}
           rUpdRobo = 
             case M.lookup rNbr (vpmOPorts $ rVisPortMeta uUpdRobo) of
@@ -127,7 +124,7 @@ validMoveResHandler nextPos r@(Robot lastPos cPM d visPM _) =
               Just rNbrPm -> roboAndRightNeigbourUpdated
                 where
                   newRoboPm = setROpen (rPortMeta uUpdRobo)
-                  newRoboVisPm = insertPort rNbr (setLOpen rNbrPm) $ rVisPortMeta uUpdRobo
+                  newRoboVisPm = updatePort rNbr setLOpen $ rVisPortMeta uUpdRobo
                   roboAndRightNeigbourUpdated = uUpdRobo {rPortMeta = newRoboPm , rVisPortMeta = newRoboVisPm}
           dUpdRobo = 
             case M.lookup dNbr (vpmOPorts $ rVisPortMeta rUpdRobo) of
@@ -135,19 +132,13 @@ validMoveResHandler nextPos r@(Robot lastPos cPM d visPM _) =
               Just dNbrPm -> roboAndDownNeigbourUpdated
                 where
                   newRoboPm = setDOpen (rPortMeta rUpdRobo)
-                  newRoboVisPm = insertPort dNbr (setUOpen dNbrPm) $ rVisPortMeta rUpdRobo 
+                  newRoboVisPm = updatePort dNbr setUOpen $ rVisPortMeta rUpdRobo 
                   roboAndDownNeigbourUpdated = rUpdRobo {rPortMeta = newRoboPm , rVisPortMeta = newRoboVisPm}
           lUpdRobo = 
             case M.lookup lNbr (vpmOPorts $ rVisPortMeta dUpdRobo) of
               Nothing -> dUpdRobo
               Just lNbrPm -> roboAndLeftNeigbourUpdated
                 where
-                  newRoboPm = closePortIfPossible $ setLOpen (rPortMeta dUpdRobo)
-                  newRoboVisPm = insertPort lNbr (setROpen lNbrPm) $ rVisPortMeta dUpdRobo
+                  newRoboPm = setLOpen (rPortMeta dUpdRobo)
+                  newRoboVisPm = updatePort lNbr setROpen $ rVisPortMeta dUpdRobo
                   roboAndLeftNeigbourUpdated = dUpdRobo {rPortMeta = newRoboPm , rVisPortMeta = newRoboVisPm}
-          
-
-
-
-a = undefined
-
