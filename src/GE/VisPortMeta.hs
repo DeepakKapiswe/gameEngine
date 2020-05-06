@@ -4,13 +4,15 @@ import qualified Data.HashMap.Strict as M
 
 import GE.Types
 import GE.PortMeta
-import GE.PortCompletion
+import GE.PortCompletion 
+import GE.Port
 
 
 initVisPorts :: VisPortMeta
 initVisPorts = VisPortMeta 1 [] mempty mempty mempty mempty
 
 
+-- | Insert a new Port in VisPortMeta
 insertPort
   :: Coordinate
   -> PortMeta
@@ -21,26 +23,29 @@ insertPort c pm vp = case checkIfComplete pm of
   True | pIsClosed pm -> vp { vpmCPorts = M.insert c pm $ vpmCPorts vp}
   True                -> vp''
     where
-      vp'' = portCloseHandler c vp'
-      vp' = vp { vpmCPorts = M.insert c pm' $ vpmCPorts vp}
-      pm' = setIsClosed pm
+      vp'' = closeCompletePort c pm vp'
+      vp' = vp { vpmCPorts = M.insert c pm $ vpmCPorts vp}
 
-lookupPort
-  :: Coordinate
-  -> VisPortMeta
-  -> PortLookupResult
-lookupPort c vpm =
-  case M.lookup c (vpmCPorts vpm) of
-    Just cpm -> InClosed cpm
-    _ -> case M.lookup c (vpmOPorts vpm) of
-           Just opm -> InOpen opm
-           _        -> PortNotFound
+-- | Update the PM with supplied function of the given coordinate in VisPortMeta 
+updatePort :: Coordinate -> (PortMeta-> PortMeta) -> VisPortMeta -> VisPortMeta
+updatePort cord f visPM = case M.lookup cord vCPorts of
+  Just pm -> visPM {vpmCPorts = M.adjust f cord vCPorts}
+  Nothing -> case M.lookup cord vOPorts of
+    Just openPm -> closeCompletePort cord updPm $ visPM {vpmOPorts = M.adjust f cord vOPorts}
+      where
+        updPm = f openPm
+    Nothing -> visPM
+  where
+    vCPorts = vpmCPorts visPM
+    vOPorts = vpmOPorts visPM
 
--- ^^ for optimisation keep length data of both the maps and lookup
---    first on that map which is smaller
 
-getCoordPM :: Coordinate -> VisPortMeta -> PortMeta
-getCoordPM c visPM = case lookupPort c visPM of
-  InOpen pm -> pm
-  InClosed pm -> pm
-  _           -> error "Oops! should not happen, in Port Completion" 
+-- | Try to get an OpenPortPath from the given conf of Robot
+getOPP :: Robot -> Maybe [Coordinate]
+getOPP rob | null vPNtoOPP = Nothing
+           | otherwise = Just $ vPNtoOPP M.! lastUpdPortNum
+  where
+    vPNtoOPP = vpmPNOPPMap visPM
+    lastUpdPortNum = head (vpmLastUpdatedPNs visPM)
+    visPM    = rVisPortMeta rob
+

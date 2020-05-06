@@ -6,17 +6,16 @@ module GE.Types where
 import Data.HashMap.Strict
 import Data.Hashable
 import GHC.Generics (Generic)
+import Data.List (sortOn)
 
 
 data Game = Game {
-    gGameConfig :: GameConfig
-  , gRobot      :: Robot
-} deriving (Show, Eq)
-
-data GameWorld = GameWorld {
-    gwRobot        :: Robot
-  , gwGrid         :: Grid
-  , gwObstacles    :: [Coordinate]
+    gGameConfig     :: GameConfig
+  , gRobot          :: Robot
+  , gRoboEngineData :: RoboEngineData
+  , gLastResponse   :: MoveRes
+  , gIsCompleted    :: Bool
+  , gIsPathsConsistent :: Bool
 } deriving (Show, Eq)
 
 data GameConfig = GameConfig {
@@ -24,38 +23,37 @@ data GameConfig = GameConfig {
   , gcObstacles :: [Coordinate]
 } deriving (Show, Eq)
 
+
+data RoboEngineData = RoboEngineData {
+    redUExtreme     :: Coordinate
+  , redRExtreme     :: Coordinate
+  , redDExtreme     :: Coordinate
+  , redLExtreme     :: Coordinate
+  , redMMode        :: MMode
+  , redNextCommands :: [Command]
+  , redDestination  :: Maybe [Coordinate]
+} deriving (Show, Eq)
+
+data MMode = NormalMode | TrappedMode
+  deriving(Show, Eq)
+
 data Robot = Robot {
     rPos            :: Coordinate
   , rPortMeta       :: PortMeta
   , rDir            :: Direction
   , rVisPortMeta    :: VisPortMeta
   , rBlockedCoords  :: [Coordinate]
-} deriving (Eq)
-
-instance Show Robot where
-  show (Robot pos pm _ pmMap _) = unlines [show pos, show pm, show pmMap]
+} deriving (Show, Eq)
 
 data VisPortMeta = VisPortMeta {
     vpmMaxPortNum    :: Int
   , vpmLastUpdatedPNs :: [Int]
-  -- , vpmLastInterval  :: PortInterval
   , vpmCPorts        :: Map Coordinate PortMeta
   , vpmOPorts        :: Map Coordinate PortMeta
   , vpmCoordPNMap    :: Map Coordinate PortNum
   , vpmPNOPPMap      :: Map PortNum OpenPortPath
   -- , vpmIntervalPNMap :: Map PortInterval PortInterval
-} deriving (Eq)
-
-instance Show VisPortMeta where
-  show visPM@(VisPortMeta vpmMax vpmLast vCPorts vOPorts vCPNMap vPNOPPMap) =
-    unlines [
-        "vpmMax: " <> show vpmMax
-      , "\nvpmLast: \n" <> show vpmLast
-      , "\nClosedPorts: \n" <> (unlines $ fmap show $ toList vCPorts )
-      , "\nOpenPorts: \n" <> (unlines $ fmap show $ toList vOPorts )
-      , "\nC -> PN : \n" <> (unlines $ fmap show $ toList vCPNMap )
-      , "\nPN -> Paths: \n" <> (unlines $ fmap show $ toList vPNOPPMap )
-    ]  
+} deriving (Show, Eq)
 
 type PortNum = Int
 type Map = HashMap
@@ -67,7 +65,10 @@ type OpenPortPath = [Coordinate]
 data Coordinate = Coordinate {
     cX :: Int
   , cY :: Int
-} deriving (Show, Eq, Ord, Generic)
+} deriving (Eq, Ord, Generic)
+
+instance Show Coordinate where
+  show (Coordinate x y) = show x <> "≈" <> show y <> " | "
 
 instance Hashable Coordinate
 
@@ -104,10 +105,13 @@ data Neighbours = Neighbours {
 data Command =
     Move 
   | SetDirection Direction
+  | UpdateEngineData
+  | Done
   deriving (Show, Eq)
 
 data MoveRes = Ok Coordinate
              | Blocked Coordinate
+             | DirectionSet Direction
   deriving (Show, Eq)
 
 data PortInterval = PortInterval {
@@ -126,5 +130,6 @@ instance Ord PortInterval where
 data PortLookupResult =
     InOpen PortMeta
   | InClosed PortMeta
+  | InBlocked 
   | PortNotFound
   deriving (Show, Eq)
