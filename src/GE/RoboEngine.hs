@@ -51,7 +51,7 @@ getNextCommand
                                 , redDestination = Just openPortPath }
                      cmd:rest = genPathCommands (rPos rob) (rDir rob) openPortPath
 
-             Just d | inExtremePos (rPos rob) red -> (red'', cmd)    -- change direction, set new extreme and execute
+             Just d | inExtremePos (rPos rob) (rDir rob) red -> (red'', cmd)    -- change direction, set new extreme and execute
                where
                    cmd:rest = SetDirection d : moveCmds 
                    moveCmds = getLinearMoveCommands (rPos rob) newExtreme d
@@ -66,11 +66,29 @@ getNextCommand
                      RIGHT ->  red { redRExtreme = newExtreme, redNextCommands = rest  }
                      DOWN  ->  red { redDExtreme = newExtreme, redNextCommands = rest  }
                      LEFT  ->  red { redLExtreme = newExtreme, redNextCommands = rest  }
-             Just d -> (red', cmd)
+             Just d | checkMoveDirection (rDir rob) (rPortMeta rob) -> (red', Move)
+               where
+                 red' = red { redNextCommands = [] }
+                 
+             Just d | crossedExtremePos (getNextPosInDir (rPos rob) d) d red  -> (red'', cmd)
                where
                  cmd:rest = SetDirection d : [Move]
-                 red' = red { redNextCommands = rest }
+                 newExtreme = case d of
+                   UP    ->  getNewExtreme UP    (rPos rob) $ redUExtreme red
+                   RIGHT ->  getNewExtreme RIGHT (rPos rob) $ redRExtreme red
+                   DOWN  ->  getNewExtreme DOWN  (rPos rob) $ redDExtreme red
+                   LEFT  ->  getNewExtreme LEFT  (rPos rob) $ redLExtreme red
                    
+                 red'' = case d of
+                   UP    ->  red { redUExtreme = newExtreme, redNextCommands = rest  }
+                   RIGHT ->  red { redRExtreme = newExtreme, redNextCommands = rest  }
+                   DOWN  ->  red { redDExtreme = newExtreme, redNextCommands = rest  }
+                   LEFT  ->  red { redLExtreme = newExtreme, redNextCommands = rest  }
+             
+             Just d -> (red', cmd)    -- change direction, move once 
+               where
+                   cmd:rest = if d /= (rDir rob) then SetDirection d : [Move] else [Move]
+                   red' = red { redNextCommands = rest }
           _ ->     
            case getNewMoveDirection (rDir rob) (rPortMeta rob) of
              Nothing -> case checkAdjacentIfOpen rob of
@@ -87,10 +105,25 @@ getNextCommand
                                 , redDestination = Just openPortPath }
                      cmd:rest = genPathCommands (rPos rob) (rDir rob) openPortPath
 
+             Just d | crossedExtremePos (getNextPosInDir (rPos rob) d) d red  -> (red'', cmd)
+               where
+                 cmd:rest = SetDirection d : [Move]
+                 newExtreme = case d of
+                   UP    ->  getNewExtreme UP    (rPos rob) $ redUExtreme red
+                   RIGHT ->  getNewExtreme RIGHT (rPos rob) $ redRExtreme red
+                   DOWN  ->  getNewExtreme DOWN  (rPos rob) $ redDExtreme red
+                   LEFT  ->  getNewExtreme LEFT  (rPos rob) $ redLExtreme red
+                   
+                 red'' = case d of
+                   UP    ->  red { redUExtreme = newExtreme, redNextCommands = rest  }
+                   RIGHT ->  red { redRExtreme = newExtreme, redNextCommands = rest  }
+                   DOWN  ->  red { redDExtreme = newExtreme, redNextCommands = rest  }
+                   LEFT  ->  red { redLExtreme = newExtreme, redNextCommands = rest  } 
              Just d -> (red', cmd)    -- change direction, move once 
                where
                    cmd:rest = if d /= (rDir rob) then SetDirection d : [Move] else [Move]
                    red' = red { redNextCommands = rest }
+              
       
 
 initRoboEngineData :: Coordinate -> RoboEngineData
@@ -116,6 +149,16 @@ getNewMoveDirection dir pm@(PortMeta u r d l _ _)
     d' = (DOWN, d)
     l' = (LEFT, l)
     getClockWiseDir = fst . head . dropWhile (\(_,p) -> p /= True)
+
+checkMoveDirection :: Direction -> PortMeta -> Bool
+checkMoveDirection dir pm@(PortMeta u r d l _ _) 
+  | checkIfComplete pm = False 
+  | otherwise = 
+    case dir of
+      UP    -> u
+      RIGHT -> r
+      DOWN  -> d
+      LEFT  -> l
 
 
 genPathCommands
@@ -212,13 +255,31 @@ getLinearMoveCommands
                   LEFT  -> abs (sx - dx)
   in replicate numStep Move
 
-inExtremePos :: Coordinate -> RoboEngineData -> Bool
-inExtremePos currPos red = any (currPos ==) [ux, rx, dx, lx]
+inExtremePos :: Coordinate -> Direction -> RoboEngineData -> Bool
+inExtremePos currPos@(Coordinate cx cy) dir red =
+  case dir of
+     UP    -> cy >= uy
+     RIGHT -> cx >= rx
+     DOWN  -> cy <= dy
+     LEFT  -> cx <= lx
   where
-    ux = redUExtreme red
-    rx = redRExtreme red
-    dx = redDExtreme red
-    lx = redLExtreme red
+    Coordinate ux uy = redUExtreme red
+    Coordinate rx ry = redRExtreme red
+    Coordinate dx dy = redDExtreme red
+    Coordinate lx ly = redLExtreme red
+
+crossedExtremePos :: Coordinate -> Direction -> RoboEngineData -> Bool
+crossedExtremePos currPos@(Coordinate cx cy) dir red =
+  case dir of
+     UP    -> cy > uy
+     RIGHT -> cx > rx
+     DOWN  -> cy < dy
+     LEFT  -> cx < lx
+  where
+    Coordinate ux uy = redUExtreme red
+    Coordinate rx ry = redRExtreme red
+    Coordinate dx dy = redDExtreme red
+    Coordinate lx ly = redLExtreme red
 
 -- | check whether robot can travel in the given path or its invalid path
 checkConsistency :: [Coordinate] -> Bool

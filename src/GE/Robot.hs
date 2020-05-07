@@ -22,3 +22,11 @@ getNeighbours (Coordinate x y) =
 
 setRoboDir :: Robot -> Direction -> Robot
 setRoboDir r d = r {rDir = d}
+
+
+getNextPosInDir :: Coordinate -> Direction -> Coordinate
+getNextPosInDir (Coordinate x y) d = case d of
+  UP    -> Coordinate x     (y+1) 
+  RIGHT -> Coordinate (x+1) y
+  DOWN  -> Coordinate x     (y-1)
+  LEFT  -> Coordinate (x-1) y
