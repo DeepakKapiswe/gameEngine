@@ -14,11 +14,11 @@ makeGrid x y = reverse $ makeRow x <$> [1..y]
     makeRow x y = [Coordinate a y | a <- [1..x]] 
 
 makeSampleGame :: Int -> Int -> Game
-makeSampleGame x y = Game (GameConfig g sampleObs) r red res False True
+makeSampleGame x y = Game (GameConfig g sampleObs) r red res False
   where
     r = Robot cord initPortMeta LEFT visPortMeta []
     g = makeGrid x y 
-    cord = Coordinate 5 6 
+    cord = Coordinate 5 5
     visPortMeta = insertPort cord initPortMeta $ initVisPorts 
     red = initRoboEngineData cord
     res = Ok cord
@@ -51,7 +51,7 @@ sampleObs = [
     -- , Coordinate 5 13
     -- , Coordinate 11 7
     -- , Coordinate 1 7
-    -- , Coordinate 11 7
+    -- , Coordinate 11 7 --
     -- , Coordinate 12 14
     -- , Coordinate 14 7
     -- , Coordinate 14 1

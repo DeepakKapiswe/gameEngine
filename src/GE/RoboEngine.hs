@@ -129,7 +129,7 @@ getNextCommand
 initRoboEngineData :: Coordinate -> RoboEngineData
 initRoboEngineData initPos = 
   RoboEngineData
-    initPos initPos initPos initPos NormalMode [] Nothing
+    initPos initPos initPos initPos NormalMode [] Nothing []
 
 -- | This function will return a new direction looking clockwise if open
 --   otherwise if Trapped i.e all the current port is complete it will return

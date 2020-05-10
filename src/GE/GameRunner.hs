@@ -32,24 +32,36 @@ gameAutoPlay g =
       case getNextCommand red mr rob of
         (_,Done) ->  g { gIsCompleted = True }
         (red', UpdateEngineData) -> g {gRoboEngineData = red'}
-        (red', cmd)              -> g { gRoboEngineData = red'
+        (red', cmd)              -> g { gRoboEngineData = red''
                                       , gLastResponse   = gameServerRes
                                       , gRobot          = newRobo'
-                                      , gIsPathsConsistent = consistencyResult
                                       }
           where
+            red'' = red' {redLastMoveDirs = redLastMoveDirs' }
             gameServerRes =
               case cmd of
                 SetDirection d -> DirectionSet d 
                 Move           -> (gameServer gConfig (getRobotNextPos rob))
-            newRobo' = updateRoboPath rob $ newRobo
+            newRobo' = case gameServerRes of
+              Ok _ -> updateRoboPath rob newRobo newMoveDirs
+              _    -> newRobo
             newRobo = case cmd of
               SetDirection d -> setRoboDir rob d
               Move           -> moveResHandler gameServerRes rob
-            consistencyResult = all checkConsistency . M.elems $ vpmPNOPPMap (rVisPortMeta newRobo')
+            
+            newMoveDirs = case oldMoveDirs of
+              []  -> [rDir newRobo]
+              [x] -> [x, rDir newRobo]
+              _   ->  drop 1 $ oldMoveDirs <> [rDir newRobo]
+            oldMoveDirs = redLastMoveDirs red
+            redLastMoveDirs' = case gameServerRes of
+              Ok _ -> newMoveDirs
+              _    -> oldMoveDirs
+             
   where
     red = gRoboEngineData g
     mr  = gLastResponse g
     rob = gRobot g
     gConfig = gGameConfig g
+    
                
