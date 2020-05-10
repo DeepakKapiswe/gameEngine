@@ -15,7 +15,6 @@ data Game = Game {
   , gRoboEngineData :: RoboEngineData
   , gLastResponse   :: MoveRes
   , gIsCompleted    :: Bool
-  , gIsPathsConsistent :: Bool
 } deriving (Show, Eq)
 
 data GameConfig = GameConfig {
@@ -32,6 +31,7 @@ data RoboEngineData = RoboEngineData {
   , redMMode        :: MMode
   , redNextCommands :: [Command]
   , redDestination  :: Maybe [Coordinate]
+  , redLastMoveDirs :: [Direction]
 } deriving (Show, Eq)
 
 data MMode = NormalMode | TrappedMode
@@ -60,8 +60,6 @@ type Map = HashMap
 
 type OpenPortPath = [Coordinate]
 
-
-
 data Coordinate = Coordinate {
     cX :: Int
   , cY :: Int
@@ -83,7 +81,6 @@ data PortMeta = PortMeta {
 } deriving (Show, Eq)
 
 type Grid = [[Coordinate]]
-  -- deriving (Show, Eq)
 
 data Direction =
     UP

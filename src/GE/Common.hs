@@ -14,3 +14,4 @@ searchDeleteAdd a xs | elem a xs = dropWhile (/= a) xs
 searchDelete :: Eq a => a -> [a] -> [a]
 searchDelete a xs | elem a xs = dropWhile (/= a) xs
                   | otherwise = xs
+ 
